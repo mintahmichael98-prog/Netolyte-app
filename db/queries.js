@@ -28,8 +28,14 @@ const getCustomersByTeamId = async (teamId) => {
 
 // Example 2: Function used by the Webhook to save a new team
 const createTeam = async (clerkOrgId, name) => {
-    // FIX APPLIED: Changed 'clerk_org_id' to the correct column name 'id'
-    const text = 'INSERT INTO teams(id, name) VALUES($1, $2) RETURNING *';
+    // FINAL FIX: Target the 'clerk_id' column for the Clerk ID value (TEXT type)
+    // Use ON CONFLICT (clerk_id) DO NOTHING to prevent errors on re-run.
+    const text = `
+        INSERT INTO teams(clerk_id, name) 
+        VALUES($1, $2) 
+        ON CONFLICT (clerk_id) DO NOTHING 
+        RETURNING *
+    `;
     const values = [clerkOrgId, name];
     const result = await query(text, values);
     return result.rows[0];
