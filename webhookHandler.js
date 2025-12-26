@@ -1,19 +1,12 @@
 // webhookHandler.js
 
 const bodyParser = require('body-parser');
-const queries = require('./db/queries'); // Database functions
+const queries = require('./db/queries'); 
 
-// Important: Use your actual Clerk Webhook Secret!
 const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET; 
-
-// Use raw body for verification
 const webhookParser = bodyParser.raw({ type: 'application/json' });
 
-// The handler function that Clerk will call
-const handleClerkWebhook = async (req, res) => {
-    // 1. Verify the signature (Crucial Security Step - implementation omitted for brevity)
-    // NOTE: You must implement Svix verification in a production environment.
-    
+const handleClerkWebhook = async (req, res) => { 
     let payload;
     try {
         payload = JSON.parse(req.body.toString());
@@ -24,29 +17,51 @@ const handleClerkWebhook = async (req, res) => {
 
     const { type, data } = payload;
 
-    // 3. Handle the 'Organization Created' event
+    // 1. Handle Organization Created
     if (type === 'organization.created') {
-        const { id: clerkOrgId, name } = data; // clerkOrgId is e.g., "org_2g7..."
+        const { id: clerkOrgId, name } = data; 
+        try {
+            await queries.createTeam(clerkOrgId, name);
+            console.log(`[Webhook] Team Created: ${name}`);
+        } catch (err) {
+            console.error('[Webhook Error] Team Creation Failed:', err);
+            return res.status(500).send('Database error');
+        }
+    } 
+    
+    // 2. Handle User Created
+    else if (type === 'user.created') {
+        const clerkUserId = data.id; 
+        const email = data.email_addresses[0]?.email_address;
+        const firstName = data.first_name;
+        const lastName = data.last_name;
 
         try {
-            // FINAL FIX: Call the corrected 'createTeam' function from db/queries.js.
-            // This ensures the TEXT-type Clerk ID is inserted into the TEXT-type 'clerk_id' column.
-            await queries.createTeam(clerkOrgId, name);
-            
-            console.log(`[Webhook] Successfully created team: ${name} (${clerkOrgId})`);
-
+            await queries.createUser(clerkUserId, email, firstName, lastName);
+            console.log(`[Webhook] User Created: ${email}`);
         } catch (err) {
-            // Log the detailed error from the database
-            // If the UUID error (22P02) still appears, it means Vercel has not deployed this version.
-            console.error('[Webhook Error] Failed to create team in DB:', err);
-            // And send an error response so Clerk knows it failed
-            return res.status(500).send('Database operation failed.');
+            console.error('[Webhook Error] User Creation Failed:', err);
+            return res.status(500).send('Database error');
         }
     }
 
-    // 4. Handle other events (e.g., organization.updated) as needed...
+    // 3. Handle User Updated (NEW)
+    else if (type === 'user.updated') {
+        const clerkUserId = data.id;
+        const email = data.email_addresses[0]?.email_address;
+        const firstName = data.first_name;
+        const lastName = data.last_name;
 
-    // Only send success after the database operation has succeeded
+        try {
+            await queries.updateUser(clerkUserId, email, firstName, lastName);
+            console.log(`[Webhook] User Updated: ${clerkUserId}`);
+        } catch (err) {
+            console.error('[Webhook Error] User Update Failed:', err);
+            return res.status(500).send('Database error');
+        }
+    }
+
+    // Success response to Clerk
     res.status(200).send('Webhook received successfully'); 
 };
 
