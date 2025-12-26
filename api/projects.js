@@ -4,12 +4,10 @@ const queries = require('../db/queries');
 module.exports = ClerkExpressWithAuth(async (req, res) => {
     const { userId, orgId } = req.auth;
 
-    // Check if user is logged in
     if (!userId) {
-        return res.status(401).json({ error: "Please log in first" });
+        return res.status(401).json({ error: "Unauthorized" });
     }
 
-    // Check if an organization (team) is selected
     if (!orgId) {
         return res.status(400).json({ error: "No organization selected" });
     }
@@ -21,7 +19,7 @@ module.exports = ClerkExpressWithAuth(async (req, res) => {
         } 
         
         if (req.method === 'POST') {
-            const { name, description } = JSON.parse(req.body);
+            const { name, description } = req.body;
             const newProject = await queries.createProject(name, description, orgId);
             return res.status(201).json(newProject);
         }
