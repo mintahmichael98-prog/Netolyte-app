@@ -1,54 +1,86 @@
 // webhookHandler.js
-
 const bodyParser = require('body-parser');
 const queries = require('./db/queries'); 
+
+const webhookParser = bodyParser.raw({ type: 'application/json' });
 
 const handleClerkWebhook = async (req, res) => { 
     let payload;
     try {
         payload = JSON.parse(req.body.toString());
     } catch (e) {
-        return res.status(400).send('Invalid JSON');
+        console.error("Error parsing webhook body:", e);
+        return res.status(400).send('Invalid JSON payload.');
     }
 
     const { type, data } = payload;
 
-    // 1. Organizations
-    if (type === 'organization.created') {
-        await queries.createTeam(data.id, data.name);
-    } 
-    
-    // 2. Users
-    else if (type === 'user.created') {
-        const email = data.email_addresses[0]?.email_address;
-        await queries.createUser(data.id, email, data.first_name, data.last_name);
-    } 
-    else if (type === 'user.updated') {
-        const email = data.email_addresses[0]?.email_address;
-        await queries.updateUser(data.id, email, data.first_name, data.last_name);
-    }
+    try {
+        switch (type) {
+            // 1. ORGANIZATIONS (Teams)
+            case 'organization.created':
+                await queries.createTeam(data.id, data.name);
+                console.log(`[Webhook] Team Created: ${data.name}`);
+                break;
 
-    // 3. Memberships (THE LINK)
-    else if (type === 'organizationMembership.created') {
-        const clerkUserId = data.public_user_data.user_id;
-        const clerkOrgId = data.organization.id;
-        const role = data.role;
+            // 2. USERS
+            case 'user.created':
+                await queries.createUser(
+                    data.id, 
+                    data.email_addresses[0]?.email_address, 
+                    data.first_name, 
+                    data.last_name
+                );
+                console.log(`[Webhook] User Created: ${data.id}`);
+                break;
 
-        try {
-            await queries.createMembership(clerkUserId, clerkOrgId, role);
-            console.log(`[Webhook] Linked User ${clerkUserId} to Org ${clerkOrgId}`);
-        } catch (err) {
-            console.error('[Webhook Error] Membership Link Failed:', err);
+            case 'user.updated':
+                await queries.updateUser(
+                    data.id, 
+                    data.email_addresses[0]?.email_address, 
+                    data.first_name, 
+                    data.last_name
+                );
+                console.log(`[Webhook] User Updated: ${data.id}`);
+                break;
+
+            // 3. MEMBERSHIPS (The Link)
+            case 'organizationMembership.created':
+                await queries.createMembership(
+                    data.public_user_data.user_id, 
+                    data.organization.id, 
+                    data.role
+                );
+                console.log(`[Webhook] Membership Linked: ${data.public_user_data.user_id}`);
+                break;
+
+            case 'organizationMembership.updated':
+                await queries.updateMembershipRole(
+                    data.public_user_data.user_id, 
+                    data.organization.id, 
+                    data.role
+                );
+                console.log(`[Webhook] Role Updated: ${data.role}`);
+                break;
+
+            case 'organizationMembership.deleted':
+                await queries.deleteMembership(
+                    data.public_user_data.user_id, 
+                    data.organization.id
+                );
+                console.log(`[Webhook] Membership Deleted`);
+                break;
+
+            default:
+                console.log(`[Webhook] Unhandled event type: ${type}`);
         }
-    }
-    
-    else if (type === 'organizationMembership.deleted') {
-        const clerkUserId = data.public_user_data.user_id;
-        const clerkOrgId = data.organization.id;
-        await queries.deleteMembership(clerkUserId, clerkOrgId);
-    }
 
-    res.status(200).send('OK'); 
+        res.status(200).send('Webhook processed successfully');
+
+    } catch (err) {
+        console.error(`[Webhook Error] Failed processing ${type}:`, err);
+        res.status(500).send('Database operation failed.');
+    }
 };
 
-module.exports = { webhookParser: bodyParser.raw({ type: 'application/json' }), handleClerkWebhook };
+module.exports = { webhookParser, handleClerkWebhook };
