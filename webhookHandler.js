@@ -1,29 +1,46 @@
 // webhookHandler.js
+const { Webhook } = require('svix');
 const bodyParser = require('body-parser');
 const queries = require('./db/queries'); 
 
-const webhookParser = bodyParser.raw({ type: 'application/json' });
+const handleClerkWebhook = async (req, res) => {
+    // 1. Grab Svix headers
+    const svix_id = req.headers["svix-id"];
+    const svix_timestamp = req.headers["svix-timestamp"];
+    const svix_signature = req.headers["svix-signature"];
 
-const handleClerkWebhook = async (req, res) => { 
-    let payload;
-    try {
-        payload = JSON.parse(req.body.toString());
-    } catch (e) {
-        console.error("Error parsing webhook body:", e);
-        return res.status(400).send('Invalid JSON payload.');
+    if (!svix_id || !svix_timestamp || !svix_signature) {
+        console.error("Missing Svix headers");
+        return res.status(400).send('Error: Missing svix headers');
     }
 
-    const { type, data } = payload;
+    // 2. Verify Webhook Signature
+    const payload = req.body.toString();
+    const secret = process.env.CLERK_WEBHOOK_SECRET;
+    const wh = new Webhook(secret);
+
+    let evt;
+    try {
+        evt = wh.verify(payload, {
+            "svix-id": svix_id,
+            "svix-timestamp": svix_timestamp,
+            "svix-signature": svix_signature,
+        });
+    } catch (err) {
+        console.error('Webhook verification failed:', err.message);
+        return res.status(400).send('Error: Invalid signature');
+    }
+
+    // 3. Extract verified data
+    const { type, data } = evt;
 
     try {
         switch (type) {
-            // 1. ORGANIZATIONS (Teams)
             case 'organization.created':
                 await queries.createTeam(data.id, data.name);
-                console.log(`[Webhook] Team Created: ${data.name}`);
+                console.log(`Synced Team: ${data.name}`);
                 break;
 
-            // 2. USERS
             case 'user.created':
                 await queries.createUser(
                     data.id, 
@@ -31,7 +48,7 @@ const handleClerkWebhook = async (req, res) => {
                     data.first_name, 
                     data.last_name
                 );
-                console.log(`[Webhook] User Created: ${data.id}`);
+                console.log(`Synced New User: ${data.id}`);
                 break;
 
             case 'user.updated':
@@ -41,17 +58,16 @@ const handleClerkWebhook = async (req, res) => {
                     data.first_name, 
                     data.last_name
                 );
-                console.log(`[Webhook] User Updated: ${data.id}`);
+                console.log(`Updated User: ${data.id}`);
                 break;
 
-            // 3. MEMBERSHIPS (The Link)
             case 'organizationMembership.created':
                 await queries.createMembership(
                     data.public_user_data.user_id, 
                     data.organization.id, 
                     data.role
                 );
-                console.log(`[Webhook] Membership Linked: ${data.public_user_data.user_id}`);
+                console.log(`Created Membership for User: ${data.public_user_data.user_id}`);
                 break;
 
             case 'organizationMembership.updated':
@@ -60,7 +76,7 @@ const handleClerkWebhook = async (req, res) => {
                     data.organization.id, 
                     data.role
                 );
-                console.log(`[Webhook] Role Updated: ${data.role}`);
+                console.log(`Updated Role to: ${data.role}`);
                 break;
 
             case 'organizationMembership.deleted':
@@ -68,19 +84,18 @@ const handleClerkWebhook = async (req, res) => {
                     data.public_user_data.user_id, 
                     data.organization.id
                 );
-                console.log(`[Webhook] Membership Deleted`);
+                console.log(`Deleted Membership`);
                 break;
-
-            default:
-                console.log(`[Webhook] Unhandled event type: ${type}`);
         }
 
-        res.status(200).send('Webhook processed successfully');
-
+        res.status(200).send('Webhook processed');
     } catch (err) {
-        console.error(`[Webhook Error] Failed processing ${type}:`, err);
-        res.status(500).send('Database operation failed.');
+        console.error('Database Sync Error:', err);
+        res.status(500).send('Internal Server Error');
     }
 };
 
-module.exports = { webhookParser, handleClerkWebhook };
+module.exports = { 
+    webhookParser: bodyParser.raw({ type: 'application/json' }), 
+    handleClerkWebhook 
+};
