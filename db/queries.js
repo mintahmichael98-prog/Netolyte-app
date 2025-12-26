@@ -1,4 +1,3 @@
-// db/queries.js
 const { Pool } = require('pg');
 
 const pool = new Pool({
@@ -12,7 +11,7 @@ const pool = new Pool({
 
 const query = (text, params) => pool.query(text, params);
 
-// --- AUTH SYNC FUNCTIONS (Teams, Users, Memberships) ---
+// --- SYNC FUNCTIONS ---
 const createTeam = async (clerkOrgId, name) => {
     const text = `INSERT INTO teams(clerk_id, name) VALUES($1, $2) ON CONFLICT (clerk_id) DO NOTHING RETURNING *`;
     return (await query(text, [clerkOrgId, name])).rows[0];
@@ -43,8 +42,7 @@ const deleteMembership = async (clerkUserId, clerkOrgId) => {
     await query(text, [clerkUserId, clerkOrgId]);
 };
 
-// --- MULTI-TENANT PROJECT FUNCTIONS ---
-
+// --- APP LOGIC FUNCTIONS ---
 const createProject = async (name, description, clerkOrgId) => {
     const text = `INSERT INTO projects(name, description, team_id) VALUES($1, $2, $3) RETURNING *`;
     const result = await query(text, [name, description, clerkOrgId]);
