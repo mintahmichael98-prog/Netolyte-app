@@ -1,5 +1,4 @@
 // db/queries.js
-
 const { Pool } = require('pg');
 
 const pool = new Pool({
@@ -13,12 +12,13 @@ const pool = new Pool({
 
 const query = (text, params) => pool.query(text, params);
 
-// --- TEAM & USER FUNCTIONS ---
+// --- TEAM FUNCTIONS ---
 const createTeam = async (clerkOrgId, name) => {
     const text = `INSERT INTO teams(clerk_id, name) VALUES($1, $2) ON CONFLICT (clerk_id) DO NOTHING RETURNING *`;
     return (await query(text, [clerkOrgId, name])).rows[0];
 };
 
+// --- USER FUNCTIONS ---
 const createUser = async (clerkUserId, email, firstName, lastName) => {
     const text = `INSERT INTO users(clerk_user_id, email, first_name, last_name) VALUES($1, $2, $3, $4) ON CONFLICT (clerk_user_id) DO NOTHING RETURNING *`;
     return (await query(text, [clerkUserId, email, firstName, lastName])).rows[0];
@@ -29,8 +29,7 @@ const updateUser = async (clerkUserId, email, firstName, lastName) => {
     return (await query(text, [clerkUserId, email, firstName, lastName])).rows[0];
 };
 
-// --- MEMBERSHIP FUNCTIONS (NEW) ---
-
+// --- MEMBERSHIP FUNCTIONS ---
 const createMembership = async (clerkUserId, clerkOrgId, role) => {
     const text = `
         INSERT INTO memberships(clerk_user_id, clerk_org_id, role) 
@@ -38,9 +37,12 @@ const createMembership = async (clerkUserId, clerkOrgId, role) => {
         ON CONFLICT (clerk_user_id, clerk_org_id) DO UPDATE SET role = $3
         RETURNING *
     `;
-    const values = [clerkUserId, clerkOrgId, role];
-    const result = await query(text, values);
-    return result.rows[0];
+    return (await query(text, [clerkUserId, clerkOrgId, role])).rows[0];
+};
+
+const updateMembershipRole = async (clerkUserId, clerkOrgId, role) => {
+    const text = `UPDATE memberships SET role = $3, updated_at = NOW() WHERE clerk_user_id = $1 AND clerk_org_id = $2 RETURNING *`;
+    return (await query(text, [clerkUserId, clerkOrgId, role])).rows[0];
 };
 
 const deleteMembership = async (clerkUserId, clerkOrgId) => {
@@ -49,5 +51,12 @@ const deleteMembership = async (clerkUserId, clerkOrgId) => {
 };
 
 module.exports = {
-    pool, query, createTeam, createUser, updateUser, createMembership, deleteMembership
+    pool,
+    query,
+    createTeam,
+    createUser,
+    updateUser,
+    createMembership,
+    updateMembershipRole,
+    deleteMembership
 };
