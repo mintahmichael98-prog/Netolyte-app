@@ -2,23 +2,20 @@
 
 const { Pool } = require('pg');
 
-// Configuration for the PostgreSQL connection pool
+// Connection configuration
 const pool = new Pool({
     user: process.env.DB_USER,
     host: process.env.DB_HOST,
     database: process.env.DB_DATABASE,
     password: process.env.DB_PASSWORD,
     port: process.env.DB_PORT,
-    // Ensure the correct schema is used for finding the 'teams' table
     options: '-c search_path=public' 
 });
 
-// Simple query function to run any SQL query
 const query = (text, params) => pool.query(text, params);
 
-// Function used by the Webhook to save a new team
+// --- TEAM FUNCTIONS ---
 const createTeam = async (clerkOrgId, name) => {
-    // FINAL FIX: Targets the 'clerk_id' column for the Clerk ID value (TEXT type)
     const text = `
         INSERT INTO teams(clerk_id, name) 
         VALUES($1, $2) 
@@ -30,7 +27,33 @@ const createTeam = async (clerkOrgId, name) => {
     return result.rows[0];
 };
 
-// Example: Function to get all customers for a specific team
+// --- USER FUNCTIONS ---
+const createUser = async (clerkUserId, email, firstName, lastName) => {
+    const text = `
+        INSERT INTO users(clerk_user_id, email, first_name, last_name) 
+        VALUES($1, $2, $3, $4) 
+        ON CONFLICT (clerk_user_id) DO NOTHING 
+        RETURNING *
+    `;
+    const values = [clerkUserId, email, firstName, lastName];
+    const result = await query(text, values);
+    return result.rows[0];
+};
+
+const updateUser = async (clerkUserId, email, firstName, lastName) => {
+    // Updates existing user data based on the Clerk ID
+    const text = `
+        UPDATE users 
+        SET email = $2, first_name = $3, last_name = $4, updated_at = NOW()
+        WHERE clerk_user_id = $1
+        RETURNING *
+    `;
+    const values = [clerkUserId, email, firstName, lastName];
+    const result = await query(text, values);
+    return result.rows[0];
+};
+
+// --- UTILITY FUNCTIONS ---
 const getCustomersByTeamId = async (teamId) => {
     const text = 'SELECT * FROM customers WHERE team_id = $1';
     const values = [teamId];
@@ -38,11 +61,11 @@ const getCustomersByTeamId = async (teamId) => {
     return result.rows;
 };
 
-
 module.exports = {
     pool,
     query,
     getCustomersByTeamId,
     createTeam,
-    // Add other core functions here
+    createUser,
+    updateUser, // Exported for use in the handler
 };
