@@ -1,9 +1,9 @@
-import '../styles/globals.css'; // This connects the CSS to your app
 import { ClerkProvider } from '@clerk/nextjs';
+import '../styles/globals.css'; // Make sure this path exists!
 
 function MyApp({ Component, pageProps }) {
   return (
-    <ClerkProvider {...pageProps}>
+    <ClerkProvider>
       <Component {...pageProps} />
     </ClerkProvider>
   );
