@@ -1,9 +1,10 @@
 import { ClerkProvider } from '@clerk/nextjs';
-import '../styles/globals.css'; // Make sure this path exists!
+import '../styles/globals.css';
 
 function MyApp({ Component, pageProps }) {
   return (
-    <ClerkProvider>
+    // Explicitly pass the key here
+    <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
       <Component {...pageProps} />
     </ClerkProvider>
   );
