@@ -1,6 +1,6 @@
 {
-  "name": "netolyte-fullstack",
-  "version": "1.0.0",
+  "name": "netolyte-app",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -14,16 +14,11 @@
     "react-dom": "latest",
     "@clerk/nextjs": "latest",
     "lucide-react": "latest",
-    "pg": "latest",
-    "svix": "latest",
-    "html2canvas": "latest",
-    "react-hot-toast": "latest",
     "clsx": "latest",
     "tailwind-merge": "latest"
   },
   "devDependencies": {
-    "autoprefixer": "latest",
-    "postcss": "latest",
-    "tailwindcss": "latest"
+    "postcss": "^8",
+    "tailwindcss": "^3"
   }
 }
