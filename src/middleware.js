@@ -1,6 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-// Define which routes are public (don't require login)
+// Define the home page as a public route
 const isPublicRoute = createRouteMatcher(['/']); 
 
 export default clerkMiddleware((auth, req) => {
