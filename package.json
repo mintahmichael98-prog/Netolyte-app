@@ -1,6 +1,6 @@
 {
   "name": "netolyte-app",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -12,10 +12,10 @@
     "next": "15.1.11",
     "react": "19.0.0",
     "react-dom": "19.0.0",
-    "@clerk/nextjs": "^6.9.6",
-    "@google/generative-ai": "latest",
-    "recharts": "latest",
     "react-is": "19.0.0",
+    "@clerk/nextjs": "^6.9.6",
+    "@google/genai": "latest",
+    "recharts": "^2.15.0",
     "lucide-react": "latest",
     "react-hot-toast": "latest",
     "html2canvas": "latest",
@@ -23,7 +23,7 @@
     "tailwind-merge": "latest"
   },
   "overrides": {
-    "react-is": "^19.0.0"
+    "react-is": "$react-is"
   },
   "devDependencies": {
     "postcss": "^8",
