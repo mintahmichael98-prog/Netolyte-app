@@ -1,12 +1,21 @@
+import { useState, useEffect } from 'react';
 import { ClerkProvider } from '@clerk/nextjs';
-import '../styles/globals.css';
 
 function MyApp({ Component, pageProps }) {
-  // Explicitly pull the key from environment variables
-  const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  const [mounted, setMounted] = useState(false);
+
+  // Only render the app once it's mounted on the client
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    // Return a basic loading state or null to prevent hydration crash
+    return <div style={{ background: '#0f172a', height: '100vh' }} />;
+  }
 
   return (
-    <ClerkProvider publishableKey={clerkKey}>
+    <ClerkProvider {...pageProps}>
       <Component {...pageProps} />
     </ClerkProvider>
   );
