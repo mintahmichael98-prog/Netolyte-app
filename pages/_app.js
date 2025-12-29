@@ -1,21 +1,20 @@
-"use client"; // Required for Next.js 15 + Clerk hooks
+"use client";
 
-import { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ClerkProvider } from '@clerk/nextjs';
-import '../styles/globals.css'; // Ensure this path is correct
+import type { AppProps } from 'next/app';
+import '../styles/globals.css'; // Verify this path matches your styles folder
 
-function MyApp({ Component, pageProps }) {
-  const [isMounted, setIsMounted] = useState(false);
+export default function MyApp({ Component, pageProps }: AppProps) {
+  const [mounted, setMounted] = useState(false);
 
-  // Prevention: Only render the app once it's fully mounted on the client
-  // This solves the "Hydration Mismatch" errors seen in your console.
+  // This ensures the app only renders once it's on the user's browser
   useEffect(() => {
-    setIsMounted(true);
+    setMounted(true);
   }, []);
 
-  if (!isMounted) {
-    // Show a blank background that matches your theme while loading
-    return <div style={{ background: '#0f172a', height: '100vh' }} />;
+  if (!mounted) {
+    return <div style={{ background: '#020617', minHeight: '100vh' }} />;
   }
 
   return (
@@ -24,5 +23,3 @@ function MyApp({ Component, pageProps }) {
     </ClerkProvider>
   );
 }
-
-export default MyApp;
