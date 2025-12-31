@@ -14,5 +14,5 @@
     "html2canvas": "latest",
     "clsx": "latest",
     "tailwind-merge": "latest"
-  },
+  }
 }
