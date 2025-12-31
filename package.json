@@ -15,7 +15,5 @@
     "clsx": "latest",
     "tailwind-merge": "latest"
   },
-  "overrides": {
-    "react-is": "19.0.0"
   }
 }
